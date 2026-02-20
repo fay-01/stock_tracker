@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}每日复盘 - 股票交易记录系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📝 每日复盘</h1>
+    <button class="btn btn-primary" onclick="document.getElementById('reflectionModal').style.display='block'">
+        + 新增复盘
+    </button>
+</div>
+
+<!-- 新增复盘弹窗 -->
+<div id="reflectionModal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2>📝 添加复盘记录</h2>
+            <button class="modal-close" onclick="document.getElementById('reflectionModal').style.display='none'">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('reflections') }}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="reflection_date">复盘日期 *</label>
+                    <input type="date" id="reflection_date" name="reflection_date" required>
+                </div>
+                <div class="form-group">
+                    <label for="profit_loss">当日盈亏</label>
+                    <input type="number" id="profit_loss" name="profit_loss" step="0.01"
+                           placeholder="正数表示盈利，负数表示亏损">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="content">复盘内容 *</label>
+                <textarea id="content" name="content" rows="8" required
+                          placeholder="记录今天的投资心得、市场分析、操作反思..."></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                        onclick="document.getElementById('reflectionModal').style.display='none'">取消</button>
+                <button type="submit" class="btn btn-primary">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 复盘记录列表 -->
+<div class="reflections-grid">
+    {% if reflections.items %}
+        {% for reflection in reflections.items %}
+        <div class="reflection-card-full">
+            <div class="reflection-card-header">
+                <div class="reflection-date-group">
+                    <span class="reflection-date">{{ reflection.reflection_date.strftime('%Y年%m月%d日') }}</span>
+                    <span class="reflection-weekday">{{ reflection.reflection_date.strftime('%A') }}</span>
+                </div>
+                {% if reflection.profit_loss is not none %}
+                    <span class="reflection-pl-badge {{ 'positive' if reflection.profit_loss > 0 else 'negative' }}">
+                        {{ '+' if reflection.profit_loss > 0 else '' }}¥{{ "%.2f"|format(reflection.profit_loss) }}
+                    </span>
+                {% endif %}
+                <div class="reflection-actions">
+                    <a href="{{ url_for('delete_reflection', id=reflection.id) }}"
+                       class="btn btn-sm btn-danger"
+                       onclick="return confirm('确定要删除这篇复盘吗？')">删除</a>
+                </div>
+            </div>
+            <div class="reflection-card-body">
+                {{ reflection.content|replace('\n', '<br>')|safe }}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- 分页 -->
+        {% if reflections.pages > 1 %}
+            <div class="pagination">
+                {% if reflections.has_prev %}
+                    <a href="{{ url_for('reflections', page=reflections.prev_num) }}" class="btn btn-sm">上一页</a>
+                {% endif %}
+
+                <span class="page-info">第 {{ reflections.page }} / {{ reflections.pages }} 页</span>
+
+                {% if reflections.has_next %}
+                    <a href="{{ url_for('reflections', page=reflections.next_num) }}" class="btn btn-sm">下一页</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <p>暂无复盘记录</p>
+            <button class="btn btn-primary" onclick="document.getElementById('reflectionModal').style.display='block'">
+                添加第一篇复盘
+            </button>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// 设置默认日期为今天
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('reflection_date');
+    if (!dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}

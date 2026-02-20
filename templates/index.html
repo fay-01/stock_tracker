@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero">
+    <h1>📈 股票交易记录系统</h1>
+    <p class="hero-subtitle">记录每一笔交易，反思每一次决策，让投资更有迹可循</p>
+
+    <div class="hero-features">
+        <div class="feature-card">
+            <div class="feature-icon">💼</div>
+            <h3>交易记录</h3>
+            <p>详细记录每笔买卖操作，包括股票代码、价格、数量和交易想法</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📝</div>
+            <h3>每日复盘</h3>
+            <p>记录每日投资心得，总结盈亏情况，持续改进投资策略</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>报表统计</h3>
+            <p>生成日/月/年度报表，清晰展示交易数据和投资表现</p>
+        </div>
+    </div>
+
+    <div class="hero-actions">
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-large">免费注册</a>
+        <a href="{{ url_for('login') }}" class="btn btn-secondary btn-large">已有账号？登录</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}仪表盘 - 股票交易记录系统{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h1>👋 欢迎回来，{{ current_user.username }}!</h1>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_trades }}</div>
+            <div class="stat-label">总交易笔数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ total_reflections }}</div>
+            <div class="stat-label">复盘记录</div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2>📊 最近交易记录</h2>
+                <a href="{{ url_for('trades') }}" class="btn btn-sm">查看全部</a>
+            </div>
+
+            {% if recent_trades %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>股票</th>
+                                <th>类型</th>
+                                <th>数量</th>
+                                <th>价格</th>
+                                <th>金额</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trade in recent_trades %}
+                            <tr>
+                                <td>{{ trade.trade_date.strftime('%m-%d') }}</td>
+                                <td>{{ trade.stock_code }} {{ trade.stock_name }}</td>
+                                <td>
+                                    <span class="badge badge-{{ 'success' if trade.trade_type == 'buy' else 'danger' }}">
+                                        {{ '买入' if trade.trade_type == 'buy' else '卖出' }}
+                                    </span>
+                                </td>
+                                <td>{{ trade.quantity }}</td>
+                                <td>¥{{ "%.2f"|format(trade.price) }}</td>
+                                <td>¥{{ "%.2f"|format(trade.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>暂无交易记录</p>
+                    <a href="{{ url_for('trades') }}" class="btn btn-primary">添加第一笔交易</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2>📝 最近复盘</h2>
+                <a href="{{ url_for('reflections') }}" class="btn btn-sm">查看全部</a>
+            </div>
+
+            {% if recent_reflections %}
+                <div class="reflections-list">
+                    {% for reflection in recent_reflections %}
+                    <div class="reflection-card">
+                        <div class="reflection-header">
+                            <span class="reflection-date">{{ reflection.reflection_date.strftime('%Y-%m-%d') }}</span>
+                            {% if reflection.profit_loss %}
+                                <span class="reflection-pl {{ 'positive' if reflection.profit_loss > 0 else 'negative' }}">
+                                    {{ '+' if reflection.profit_loss > 0 else '' }}¥{{ "%.2f"|format(reflection.profit_loss) }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        <p class="reflection-content">{{ reflection.content[:100] }}{% if reflection.content|length > 100 %}...{% endif %}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>暂无复盘记录</p>
+                    <a href="{{ url_for('reflections') }}" class="btn btn-primary">添加第一篇复盘</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

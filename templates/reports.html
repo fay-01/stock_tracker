@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}报表统计 - 股票交易记录系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📊 报表统计</h1>
+</div>
+
+<!-- 报表类型选择 -->
+<div class="report-tabs">
+    <a href="{{ url_for('reports', type='daily', year=current_year, month=current_month, day=current_day) }}"
+       class="tab {{ 'active' if report_type == 'daily' else '' }}">
+        日报表
+    </a>
+    <a href="{{ url_for('reports', type='monthly', year=current_year, month=current_month) }}"
+       class="tab {{ 'active' if report_type == 'monthly' else '' }}">
+        月报表
+    </a>
+    <a href="{{ url_for('reports', type='yearly', year=current_year) }}"
+       class="tab {{ 'active' if report_type == 'yearly' else '' }}">
+        年报表
+    </a>
+</div>
+
+<!-- 日期选择器 -->
+<div class="report-filters">
+    {% if report_type == 'daily' %}
+        <form method="GET" action="{{ url_for('reports') }}" class="filter-form">
+            <input type="hidden" name="type" value="daily">
+            <div class="filter-group">
+                <label>选择日期：</label>
+                <input type="date" name="date"
+                       value="{{ report_data.date.strftime('%Y-%m-%d') }}"
+                       onchange="this.form.submit()">
+            </div>
+        </form>
+    {% elif report_type == 'monthly' %}
+        <form method="GET" action="{{ url_for('reports') }}" class="filter-form">
+            <input type="hidden" name="type" value="monthly">
+            <div class="filter-group">
+                <label>选择月份：</label>
+                <input type="month" name="month"
+                       value="{{ '%04d-%02d'|format(current_year, current_month) }}"
+                       onchange="this.form.submit()">
+            </div>
+        </form>
+    {% else %}
+        <form method="GET" action="{{ url_for('reports') }}" class="filter-form">
+            <input type="hidden" name="type" value="yearly">
+            <div class="filter-group">
+                <label>选择年份：</label>
+                <select name="year" onchange="this.form.submit()">
+                    {% for y in range(2020, 2030) %}
+                        <option value="{{ y }}" {{ 'selected' if y == current_year else '' }}>{{ y }}年</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    {% endif %}
+</div>
+
+<!-- 报表内容 -->
+<div class="report-content">
+    {% if report_type == 'daily' %}
+        <!-- 日报表 -->
+        <div class="report-summary">
+            <h2>📅 {{ report_data.date.strftime('%Y年%m月%d日') }} 交易汇总</h2>
+            <div class="stats-grid stats-grid-4">
+                <div class="stat-card">
+                    <div class="stat-value">{{ report_data.total_trades }}</div>
+                    <div class="stat-label">交易笔数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ report_data.buy_count }}</div>
+                    <div class="stat-label">买入笔数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ report_data.sell_count }}</div>
+                    <div class="stat-label">卖出笔数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value {{ 'positive' if report_data.net_amount > 0 else 'negative' }}">
+                        ¥{{ "%.2f"|format(report_data.net_amount) }}
+                    </div>
+                    <div class="stat-label">净金额 (卖出 - 买入)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-detail">
+            <h3>📋 交易明细</h3>
+            {% if trades %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>股票代码</th>
+                            <th>股票名称</th>
+                            <th>类型</th>
+                            <th>数量</th>
+                            <th>价格</th>
+                            <th>金额</th>
+                            <th>想法</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trade in trades %}
+                        <tr>
+                            <td>{{ trade.trade_date.strftime('%H:%M') }}</td>
+                            <td>{{ trade.stock_code }}</td>
+                            <td>{{ trade.stock_name or '-' }}</td>
+                            <td>
+                                <span class="badge badge-{{ 'success' if trade.trade_type == 'buy' else 'danger' }}">
+                                    {{ '买入' if trade.trade_type == 'buy' else '卖出' }}
+                                </span>
+                            </td>
+                            <td>{{ trade.quantity }}</td>
+                            <td>¥{{ "%.2f"|format(trade.price) }}</td>
+                            <td>¥{{ "%.2f"|format(trade.amount) }}</td>
+                            <td class="thought-cell">{{ trade.thought or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <p>该日期暂无交易记录</p>
+                </div>
+            {% endif %}
+        </div>
+
+    {% elif report_type == 'monthly' %}
+        <!-- 月报表 -->
+        <div class="report-summary">
+            <h2>📅 {{ report_data.year }}年{{ report_data.month }}月 交易汇总</h2>
+            <div class="stats-grid stats-grid-2">
+                <div class="stat-card">
+                    <div class="stat-value">{{ report_data.total_trades }}</div>
+                    <div class="stat-label">总交易笔数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ report_data.daily_stats|length }}</div>
+                    <div class="stat-label">交易天数</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-detail">
+            <h3>📋 每日交易统计</h3>
+            {% if report_data.daily_stats %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>买入笔数</th>
+                            <th>卖出笔数</th>
+                            <th>买入金额</th>
+                            <th>卖出金额</th>
+                            <th>净金额</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for date, stats in report_data.daily_stats.items()|sort(reverse=true) %}
+                        <tr>
+                            <td>{{ date }}</td>
+                            <td>{{ stats.buy }}</td>
+                            <td>{{ stats.sell }}</td>
+                            <td>¥{{ "%.2f"|format(stats.buy_amount) }}</td>
+                            <td>¥{{ "%.2f"|format(stats.sell_amount) }}</td>
+                            <td class="{{ 'positive' if stats.sell_amount - stats.buy_amount > 0 else 'negative' }}">
+                                ¥{{ "%.2f"|format(stats.sell_amount - stats.buy_amount) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <p>该月份暂无交易记录</p>
+                </div>
+            {% endif %}
+        </div>
+
+    {% else %}
+        <!-- 年报表 -->
+        <div class="report-summary">
+            <h2>📅 {{ report_data.year }}年 交易汇总</h2>
+            <div class="stats-grid stats-grid-2">
+                <div class="stat-card">
+                    <div class="stat-value">{{ report_data.total_trades }}</div>
+                    <div class="stat-label">总交易笔数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ report_data.monthly_stats|length }}</div>
+                    <div class="stat-label">交易月数</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-detail">
+            <h3>📋 每月交易统计</h3>
+            {% if report_data.monthly_stats %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>月份</th>
+                            <th>买入笔数</th>
+                            <th>卖出笔数</th>
+                            <th>买入金额</th>
+                            <th>卖出金额</th>
+                            <th>净金额</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for month, stats in report_data.monthly_stats.items()|sort(reverse=true) %}
+                        <tr>
+                            <td>{{ month }}</td>
+                            <td>{{ stats.buy }}</td>
+                            <td>{{ stats.sell }}</td>
+                            <td>¥{{ "%.2f"|format(stats.buy_amount) }}</td>
+                            <td>¥{{ "%.2f"|format(stats.sell_amount) }}</td>
+                            <td class="{{ 'positive' if stats.sell_amount - stats.buy_amount > 0 else 'negative' }}">
+                                ¥{{ "%.2f"|format(stats.sell_amount - stats.buy_amount) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <p>该年份暂无交易记录</p>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

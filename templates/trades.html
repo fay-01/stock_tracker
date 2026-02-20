@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}交易记录 - 股票交易记录系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>💼 交易记录管理</h1>
+    <button class="btn btn-primary" onclick="document.getElementById('tradeModal').style.display='block'">
+        + 新增交易
+    </button>
+</div>
+
+<!-- 新增交易弹窗 -->
+<div id="tradeModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📝 添加交易记录</h2>
+            <button class="modal-close" onclick="document.getElementById('tradeModal').style.display='none'">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('trades') }}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="stock_code">股票代码 *</label>
+                    <input type="text" id="stock_code" name="stock_code" required placeholder="如：600519">
+                </div>
+                <div class="form-group">
+                    <label for="stock_name">股票名称</label>
+                    <input type="text" id="stock_name" name="stock_name" placeholder="如：贵州茅台">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="trade_type">交易类型 *</label>
+                    <select id="trade_type" name="trade_type" required>
+                        <option value="buy">买入</option>
+                        <option value="sell">卖出</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="trade_date">交易日期 *</label>
+                    <input type="date" id="trade_date" name="trade_date" required
+                           value="{{ now().strftime('%Y-%m-%d') if now else '' }}">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="quantity">数量 *</label>
+                    <input type="number" id="quantity" name="quantity" required min="1" placeholder="股数">
+                </div>
+                <div class="form-group">
+                    <label for="price">价格 *</label>
+                    <input type="number" id="price" name="price" required min="0" step="0.01" placeholder="每股价格">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="thought">交易想法</label>
+                <textarea id="thought" name="thought" rows="4"
+                          placeholder="记录当时的交易思路和想法..."></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                        onclick="document.getElementById('tradeModal').style.display='none'">取消</button>
+                <button type="submit" class="btn btn-primary">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 交易记录列表 -->
+<div class="table-container">
+    {% if trades.items %}
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>股票代码</th>
+                        <th>股票名称</th>
+                        <th>类型</th>
+                        <th>数量</th>
+                        <th>价格</th>
+                        <th>金额</th>
+                        <th>想法</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trade in trades.items %}
+                    <tr>
+                        <td>{{ trade.trade_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ trade.stock_code }}</td>
+                        <td>{{ trade.stock_name or '-' }}</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if trade.trade_type == 'buy' else 'danger' }}">
+                                {{ '买入' if trade.trade_type == 'buy' else '卖出' }}
+                            </span>
+                        </td>
+                        <td>{{ trade.quantity }}</td>
+                        <td>¥{{ "%.2f"|format(trade.price) }}</td>
+                        <td>¥{{ "%.2f"|format(trade.amount) }}</td>
+                        <td class="thought-cell">
+                            {% if trade.thought %}
+                                <span class="thought-preview" title="{{ trade.thought }}">
+                                    {{ trade.thought[:30] }}{% if trade.thought|length > 30 %}...{% endif %}
+                                </span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('delete_trade', id=trade.id) }}"
+                               class="btn btn-sm btn-danger"
+                               onclick="return confirm('确定要删除这条交易记录吗？')">删除</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if trades.pages > 1 %}
+            <div class="pagination">
+                {% if trades.has_prev %}
+                    <a href="{{ url_for('trades', page=trades.prev_num) }}" class="btn btn-sm">上一页</a>
+                {% endif %}
+
+                <span class="page-info">第 {{ trades.page }} / {{ trades.pages }} 页</span>
+
+                {% if trades.has_next %}
+                    <a href="{{ url_for('trades', page=trades.next_num) }}" class="btn btn-sm">下一页</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <p>暂无交易记录</p>
+            <button class="btn btn-primary" onclick="document.getElementById('tradeModal').style.display='block'">
+                添加第一笔交易
+            </button>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// 设置默认日期为今天
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('trade_date');
+    if (!dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}
